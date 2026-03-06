@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sealed Index</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: Arial, Helvetica, sans-serif; background:#f0f2f7; color:#1a1a2e; font-size:13px; }
+
+/* HEADER */
+header { background:#0a1628; color:white; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,0.35); }
+.header-main { display:flex; align-items:center; justify-content:space-between; padding:9px 20px; gap:12px; flex-wrap:wrap; }
+.header-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.rate-chip { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:3px 10px; font-size:0.68rem; color:rgba(255,255,255,0.55); display:flex; align-items:center; gap:5px; }
+.rdot { width:6px; height:6px; background:#4caf7d; border-radius:50%; animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.toggle-row { display:flex; align-items:center; gap:7px; font-size:0.7rem; color:rgba(255,255,255,0.55); }
+.sw { position:relative; width:34px; height:19px; cursor:pointer; flex-shrink:0; }
+.sw input { display:none; }
+.sw-t { position:absolute; inset:0; background:rgba(255,255,255,0.15); border-radius:10px; transition:background 0.2s; }
+.sw-k { position:absolute; top:2px; left:2px; width:15px; height:15px; background:white; border-radius:50%; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+.sw input:checked ~ .sw-t { background:#4a90e2; }
+.sw input:checked ~ .sw-k { left:17px; }
+.view-tog { display:flex; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); border-radius:6px; overflow:hidden; }
+.vb { padding:4px 11px; border:none; background:none; color:rgba(255,255,255,0.45); font-family:Arial,sans-serif; font-size:0.7rem; font-weight:700; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:4px; }
+.vb.active { background:#4a90e2; color:white; }
+.vb svg { width:11px; height:11px; }
+.refresh-btn { background:#4a90e2; color:white; border:none; border-radius:6px; padding:4px 12px; font-family:Arial,sans-serif; font-size:0.7rem; font-weight:700; cursor:pointer; }
+.refresh-btn:hover { background:#3a7fd2; }
+.upd { font-size:0.62rem; color:rgba(255,255,255,0.3); }
+.logo { font-size:1.1rem; font-weight:900; letter-spacing:0.15em; font-family:"Orbitron",sans-serif; line-height:1; text-transform:uppercase; }
+.logo span.logo-yellow { color:#ffe600 !important; text-shadow:0 0 8px rgba(255,230,0,1),0 0 20px rgba(255,230,0,0.6),0 0 40px rgba(255,230,0,0.3) !important; }
+.logo span { color:#4a90e2; text-shadow:0 0 8px rgba(74,144,226,1),0 0 20px rgba(74,144,226,0.6); }
+
+/* TOTALS */
+.totals-strip { background:#0f2040; display:flex; border-bottom:1px solid rgba(255,255,255,0.05); }
+.tc { flex:1; padding:9px 18px; border-right:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:space-between; }
+.tc:last-child { border-right:none; background:rgba(74,144,226,0.12); }
+.tc-lbl { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.3); font-weight:700; }
+.tc-sub { font-size:0.62rem; color:rgba(255,255,255,0.18); margin-top:1px; }
+.tc-val { font-size:0.95rem; font-weight:700; color:rgba(255,255,255,0.8); }
+.tc-val.big { font-size:1.1rem; color:#4a90e2; }
+.tc-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+.tc-move { font-size:0.65rem; font-weight:700; padding:2px 7px; border-radius:8px; white-space:nowrap; }
+.tc-move.up   { background:rgba(0,168,107,0.2); color:#4cdf9a; }
+.tc-move.down { background:rgba(224,0,60,0.2);  color:#ff6b8a; }
+.tc-move.flat { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3); }
+
+/* TABS */
+.tabs-bar { background:white; border-bottom:2px solid #e4e8f0; display:flex; padding:0 20px; overflow-x:auto; }
+.tab { padding:9px 16px 8px; border:none; background:none; font-family:Arial,sans-serif; font-size:0.75rem; font-weight:700; color:#999; cursor:pointer; border-bottom:2px solid transparent; position:relative; top:2px; transition:all 0.15s; white-space:nowrap; }
+.tab:hover { color:#4a90e2; }
+.tab.active { color:#4a90e2; border-bottom-color:#4a90e2; }
+.tab-ct { display:inline-block; background:#f0f4ff; color:#4a90e2; font-size:0.6rem; padding:1px 5px; border-radius:8px; margin-left:4px; font-weight:700; }
+.tab.active .tab-ct { background:#4a90e2; color:white; }
+.chart-tab { color:#4a90e2; border-left:2px solid #e4e8f0; margin-left:8px; padding-left:16px; }
+.chart-tab.active { color:#4a90e2; border-bottom-color:#4a90e2; }
+
+/* MAIN */
+main { padding:14px 20px 60px; }
+.status { text-align:center; padding:70px 20px; color:#999; font-size:0.82rem; }
+.spin { width:26px; height:26px; border:2px solid #dde; border-top-color:#4a90e2; border-radius:50%; animation:spin 0.7s linear infinite; margin:0 auto 12px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* GRID */
+.grid-view { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+@media (max-width:1100px) { .grid-view { grid-template-columns:repeat(4,1fr); } }
+@media (max-width:700px)  { .grid-view { grid-template-columns:repeat(3,1fr); } }
+
+.card { background:white; border-radius:8px; overflow:hidden; border:1px solid #e2e6f0; box-shadow:0 1px 3px rgba(0,0,0,0.05); transition:transform 0.15s,box-shadow 0.15s,border-color 0.15s; animation:fadeUp 0.28s ease both; display:flex; flex-direction:row; height:110px; }
+.card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.11); border-color:#a8c0e8; }
+.card.profit-open { height:auto; overflow:visible; }
+.card.profit-open .card-img { height:110px; align-self:flex-start; }
+.card:nth-child(1){animation-delay:.02s}.card:nth-child(2){animation-delay:.04s}.card:nth-child(3){animation-delay:.06s}.card:nth-child(4){animation-delay:.08s}.card:nth-child(5){animation-delay:.10s}.card:nth-child(n+6){animation-delay:.12s}
+
+/* IMAGE — left half, fills full height */
+.card-img { width:50%; height:110px; overflow:hidden; background:#e8ecf5; position:relative; flex-shrink:0; align-self:stretch; }
+.card-img a { display:block; width:100%; height:100%; }
+.card-img img { width:100%; height:100%; object-fit:cover; object-position:center center; transition:transform 0.3s; display:block; }
+.card:hover .card-img img { transform:scale(1.06); }
+.card-img-ph { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:linear-gradient(135deg,#e8ecf5,#dde2ee); color:#9aa; font-size:0.6rem; font-weight:700; text-align:center; padding:6px; }
+.card-img-ph svg { width:20px; height:20px; opacity:0.2; }
+.tcg-hover { position:absolute; inset:0; background:rgba(10,22,40,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.18s; font-size:0.6rem; color:white; font-weight:700; letter-spacing:0.04em; }
+.card:hover .tcg-hover { opacity:1; }
+
+/* CARD BODY — right half */
+.card-body { padding:8px 9px; flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:4px; min-width:0; overflow:hidden; }
+.card-name { font-size:0.72rem; font-weight:700; color:#1a1a2e; line-height:1.25; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.card-sub { font-size:0.58rem; color:#aab; margin-top:2px; }
+
+/* nums: stacked for right-side layout */
+.card-nums { display:flex; flex-direction:column; gap:3px; margin-top:4px; }
+.cn-price { font-size:0.85rem; font-weight:700; color:#1a1a2e; }
+.cn-qty { font-size:0.62rem; color:#fff; background:#4a90e2; border-radius:4px; padding:1px 6px; font-weight:700; white-space:nowrap; display:inline-block; width:fit-content; }
+.cn-total { font-size:0.78rem; font-weight:700; color:#4a90e2; }
+
+.chg { font-size:0.6rem; font-weight:700; padding:1px 5px; border-radius:8px; }
+.chg.up { background:#e6f7f1; color:#00a86b; }
+.chg.down { background:#ffe6ec; color:#e0003c; }
+.chg.flat { background:#f0f2f8; color:#aaa; }
+
+/* PROFIT PANEL */
+.profit-panel { display:none; background:#f0f4ff; border:1px solid #d4e0f8; border-radius:5px; padding:5px 7px; flex-direction:column; gap:4px; margin-top:3px; }
+.profit-panel.show { display:flex; }
+.pp-section { display:flex; justify-content:space-between; align-items:center; }
+.pp-lbl { font-size:0.6rem; color:#888; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; }
+.pp-val { font-size:0.75rem; font-weight:700; color:#1a1a2e; }
+.pp-divider { height:1px; background:#d4e0f8; margin:1px 0; }
+.pp-profit-row { display:flex; justify-content:space-between; align-items:center; }
+.pp-profit-lbl { font-size:0.6rem; color:#888; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; }
+.pp-profit-val { display:flex; align-items:center; gap:5px; }
+.pp-profit-amt { font-size:0.78rem; font-weight:700; }
+.pp-pct { font-size:0.62rem; font-weight:700; padding:1px 5px; border-radius:8px; }
+.pos { color:#00a86b; } .pos-bg { background:#e6f7f1; color:#00a86b; }
+.neg { color:#e0003c; } .neg-bg { background:#ffe6ec; color:#e0003c; }
+
+/* LIST VIEW */
+.list-view { display:flex; flex-direction:column; gap:5px; max-width:920px; margin:0 auto; }
+.list-hdr { display:grid; grid-template-columns:50px minmax(120px,220px) 90px 70px 110px 70px 30px; padding:5px 12px; font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#aaa; border-bottom:2px solid #dde; margin-bottom:2px; max-width:900px; margin-left:auto; margin-right:auto; }
+.lh { padding:0 5px; }
+.lh.r { text-align:right; }
+.list-item { background:white; border:1px solid #e2e6f0; border-radius:7px; overflow:hidden; transition:box-shadow 0.15s,border-color 0.15s; animation:fadeUp 0.25s ease both; }
+.list-item:hover { box-shadow:0 4px 14px rgba(0,0,0,0.09); border-color:#a8c0e8; }
+.li-row { display:grid; grid-template-columns:50px minmax(120px,220px) 90px 70px 110px 70px 30px; align-items:center; height:56px; max-width:900px; margin:0 auto; }
+.li-img { width:50px; height:56px; overflow:hidden; background:#e8ecf5; }
+.li-img a { display:block; width:100%; height:100%; }
+.li-img img { width:100%; height:100%; object-fit:contain; background:#e8ecf5; transition:transform 0.25s; display:block; }
+.list-item:hover .li-img img { transform:scale(1.1); }
+.li-img-ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#e8ecf5; font-size:0.52rem; color:#aab; font-weight:700; text-align:center; padding:3px; }
+.li-col { padding:0 5px; }
+.li-col.r { text-align:right; }
+.li-name { font-size:0.76rem; font-weight:700; color:#1a1a2e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.li-sub { font-size:0.6rem; color:#aaa; margin-top:1px; }
+.li-price { font-size:0.8rem; font-weight:700; color:#1a1a2e; }
+.li-qty { font-size:0.72rem; font-weight:700; color:#fff; background:#4a90e2; border-radius:4px; padding:2px 7px; display:inline-block; }
+.li-total { font-size:0.8rem; font-weight:700; color:#4a90e2; }
+.li-link { width:22px; height:22px; background:#f0f4ff; border:1px solid #d4e0f8; border-radius:5px; display:flex; align-items:center; justify-content:center; margin:0 auto; color:#4a90e2; text-decoration:none; transition:all 0.15s; }
+.li-link:hover { background:#4a90e2; color:white; }
+.li-link svg { width:10px; height:10px; }
+.li-profit { display:none; background:#f0f4ff; border-top:1px solid #e0e8ff; padding:6px 10px 6px 62px; gap:20px; font-size:0.65rem; color:#666; max-width:900px; margin:0 auto; width:100%; }
+.li-profit.show { display:flex; flex-wrap:wrap; }
+.lp-i { display:flex; flex-direction:column; gap:1px; }
+.lp-l { font-size:0.57rem; text-transform:uppercase; letter-spacing:0.07em; color:#bbc; font-weight:700; }
+.lp-v { font-weight:700; color:#1a1a2e; }
+.lp-v.big { font-size:0.78rem; }
+.empty { text-align:center; padding:60px; color:#aaa; font-size:0.82rem; }
+/* CHART TAB */
+.chart-area { background:white; border-radius:10px; border:1px solid #e2e6f0; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+.chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+.chart-title { font-size:0.9rem; font-weight:700; color:#1a1a2e; }
+.chart-meta { font-size:0.72rem; color:#aab; }
+.chart-stats { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px; }
+.cs-box { background:#f0f4ff; border:1px solid #d4e0f8; border-radius:8px; padding:10px 16px; }
+.cs-lbl { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.08em; color:#888; font-weight:700; }
+.cs-val { font-size:1rem; font-weight:700; color:#1a1a2e; margin-top:2px; }
+.cs-val.pos { color:#00a86b; }
+.cs-val.neg { color:#e0003c; }
+.chart-note { font-size:0.7rem; color:#aab; margin-top:12px; text-align:center; line-height:1.6; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-main">
+    <div class="logo"><span class="logo-yellow">SEALED</span> <span>INDEX</span></div>
+    <div class="header-right">
+      <div class="rate-chip"><span class="rdot"></span><span id="rateLbl">AUD/USD —</span></div>
+      <div class="toggle-row">
+        Show Profit
+        <label class="sw">
+          <input type="checkbox" id="profitToggle" onchange="toggleProfit(this.checked)">
+          <div class="sw-t"></div><div class="sw-k"></div>
+        </label>
+      </div>
+      <div class="view-tog">
+        <button class="vb active" id="gridBtn" onclick="setView('grid')">
+          <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Grid
+        </button>
+        <button class="vb" id="listBtn" onclick="setView('list')">
+          <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2.5" rx="1"/><rect x="1" y="7" width="14" height="2.5" rx="1"/><rect x="1" y="12" width="14" height="2.5" rx="1"/></svg>List
+        </button>
+      </div>
+      <button class="refresh-btn" onclick="doLoad()">↻ Refresh</button>
+      <span class="upd" id="updLbl">—</span>
+    </div>
+  </div>
+</header>
+
+<div class="totals-strip">
+  <div class="tc">
+    <div><div class="tc-lbl">One Piece</div><div class="tc-sub" id="opQty">—</div></div>
+    <div class="tc-right"><div class="tc-val" id="opTotal">$—</div><div class="tc-move flat" id="opMove">— %</div></div>
+  </div>
+  <div class="tc">
+    <div><div class="tc-lbl">Pokémon</div><div class="tc-sub" id="pkQty">—</div></div>
+    <div class="tc-right"><div class="tc-val" id="pkTotal">$—</div><div class="tc-move flat" id="pkMove">— %</div></div>
+  </div>
+  <div class="tc">
+    <div><div class="tc-lbl">Other TCG</div><div class="tc-sub" id="otQty">—</div></div>
+    <div class="tc-right"><div class="tc-val" id="otTotal">$—</div><div class="tc-move flat" id="otMove">— %</div></div>
+  </div>
+  <div class="tc">
+    <div><div class="tc-lbl">Combined</div><div class="tc-sub" id="allQty">—</div></div>
+    <div class="tc-right"><div class="tc-val big" id="allTotal">$—</div><div class="tc-move flat" id="allMove">— %</div></div>
+  </div>
+</div>
+
+<div class="tabs-bar">
+  <button class="tab active" onclick="setTab('all',this)">All <span class="tab-ct" id="cntAll">0</span></button>
+  <button class="tab" onclick="setTab('onepiece',this)">One Piece <span class="tab-ct" id="cntOP">0</span></button>
+  <button class="tab" onclick="setTab('pokemon',this)">Pokémon <span class="tab-ct" id="cntPK">0</span></button>
+  <button class="tab" onclick="setTab('other',this)">Other TCG <span class="tab-ct" id="cntOT">0</span></button>
+  <button class="tab chart-tab" onclick="setTab('chart',this)">📈 12M Chart</button>
+</div>
+
+<main>
+  <div class="status" id="statusBox"><div class="spin"></div>Loading your collection…</div>
+  <div id="contentArea"></div>
+</main>
+
+<script>
+// ── EXACT COLUMN INDEXES from screenshot (0-based) ──
+// A(0)=Product  B(1)=Year  C(2)=Set Description  D(3)=Set Number
+// E(4)=Qty      F(5)=Unit Cost Avg  G(6)=Cost $AU
+// H(7)=Current$  I(8)=Current$AU
+// J(9)=Live Current US$ (TOTAL = qty × live price)  ← use directly as total
+// K(10)=Current US$ (per unit live price)
+// L(11)=Live Box Price
+// M(12)=ProductID   N(13)=Notes
+
+const C_PRODUCT  = 0;
+const C_YEAR     = 1;
+const C_SET      = 2;   // "Set Description" — use as card name
+const C_SETNUM   = 3;   // "Set Number" e.g. OP-01
+const C_QTY      = 4;   // E — Qty (Romance Dawn = 5 ✓)
+const C_UNIT_AU  = 5;   // F — Unit Cost Avg
+const C_COST_AU  = 6;   // G — Cost $AU
+const C_TOTAL_US = 9;   // J — Live Current US$ (pre-calc total)
+const C_PRICE_US = 10;  // K — Current US$ per unit
+const C_BOX_PX   = 11;  // L — Live Box Price
+const C_PID      = 12;  // M — ProductID (e.g. 450086)
+const C_NOTES    = 13;  // N
+
+let allItems = [], currentTab = 'all', currentView = 'grid', profitOn = false;
+let audUsdRate = 0.64;
+
+const fmt    = n => (n==null||isNaN(n)) ? '—' : '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtAUD = n => (n==null||isNaN(n)) ? '—' : 'A$'+Number(n).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});
+const toNum  = s  => { const v=parseFloat(String(s||'').replace(/[$,\sA]/g,'')); return isNaN(v)?null:v; };
+
+function detectCat(product, set) {
+  const t = (product+' '+set).toLowerCase();
+  if (/one.?piece|op-?\d|romance dawn|paramount|kingdoms|pillars|two legend|divine speed|legacy|prb|eb-|booster eb/i.test(t)) return 'onepiece';
+  if (/pok[eé]mon|pikachu|scarlet|violet|paldea|obsidian|charizard|sv\d|151\b|masquerade|destined|prismatic|charizard/i.test(t)) return 'pokemon';
+  return 'other';
+}
+
+// TCGPlayer image — productId is in column M (e.g. 450086)
+const tcgImg = id => { const s=String(id||'').trim(); return (s&&s!=='0'&&s!=='') ? `https://product-images.tcgplayer.com/fit-in/437x437/${s}.jpg` : null; };
+const tcgUrl = id => { const s=String(id||'').trim(); return (s&&s!=='0'&&s!=='') ? `https://www.tcgplayer.com/product/${s}` : null; };
+
+function chgBadge(item) {
+  if (item.boxPx && item.priceUS) {
+    const c = ((item.priceUS - item.boxPx) / item.boxPx) * 100;
+    if (Math.abs(c) < 0.5) return `<span class="chg flat">—</span>`;
+    return `<span class="chg ${c>0?'up':'down'}">${c>0?'▲':'▼'} ${Math.abs(c).toFixed(1)}%</span>`;
+  }
+  return '';
+}
+
+async function fetchRate() {
+  try {
+    const r = await fetch('https://api.exchangerate-api.com/v4/latest/AUD');
+    const d = await r.json();
+    if (d.rates?.USD) audUsdRate = d.rates.USD;
+  } catch(e) {}
+  document.getElementById('rateLbl').textContent = `AUD/USD ${audUsdRate.toFixed(4)}`;
+}
+
+async function doLoad() {
+  setStatus('<div class="spin"></div>Loading your collection…');
+  document.getElementById('contentArea').innerHTML = '';
+  await fetchRate();
+
+  const SHEET = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjRu4L2BOFAE5JHtXB88titJ5v4C9Yf7AWfJSJJxFx_I_dj_tjY3bA-RWplGXKPeaEmSDZw_Aku8kK/pub?output=csv&gid=2082721428';
+  const TRIES = [
+    SHEET,
+    `https://corsproxy.io/?${encodeURIComponent(SHEET)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(SHEET)}`,
+  ];
+
+  let text = null;
+  for (const url of TRIES) {
+    try {
+      const r = await fetch(url, {cache:'no-store'});
+      if (!r.ok) continue;
+      const t = await r.text();
+      if (t && !t.trimStart().startsWith('<!') && t.includes(',')) { text=t; break; }
+    } catch(e) { continue; }
+  }
+
+  if (!text) {
+    setStatus(`<div style="color:#e0003c;max-width:400px;margin:0 auto;line-height:1.8;font-size:0.8rem">
+      ⚠ Could not load sheet. Make sure it is published via <b>File → Share → Publish to web</b>.<br><br>
+      <button onclick="doLoad()" style="background:#4a90e2;color:white;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:Arial;font-weight:700">↻ Retry</button>
+    </div>`);
+    return;
+  }
+  parseCSV(text);
+}
+
+function parseCSV(csv) {
+  const rows = [];
+  let row=[], field='', inQ=false;
+  for (let i=0; i<csv.length; i++) {
+    const c=csv[i];
+    if (c==='"') { inQ=!inQ; continue; }
+    if (c===','&&!inQ) { row.push(field.trim()); field=''; continue; }
+    if ((c==='\n'||c==='\r')&&!inQ) {
+      row.push(field.trim());
+      if (row.some(f=>f)) rows.push(row);
+      row=[]; field='';
+      if (c==='\r'&&csv[i+1]==='\n') i++;
+      continue;
+    }
+    field+=c;
+  }
+  if (field||row.length) { row.push(field.trim()); if (row.some(f=>f)) rows.push(row); }
+
+  // Find header row — look for row containing "Product"
+  let hIdx=0;
+  for (let i=0; i<Math.min(8,rows.length); i++) {
+    if (rows[i].some(c=>/^product$/i.test(c.trim()))) { hIdx=i; break; }
+  }
+
+  const get = (r,col) => (col>=0&&col<r.length) ? r[col] : '';
+
+  const items=[];
+  for (let i=hIdx+1; i<rows.length; i++) {
+    const r=rows[i];
+    if (!r||r.length<5) continue;
+
+    const product = get(r, C_PRODUCT).trim();
+    // Skip blank rows, totals rows, header-like rows
+    if (!product || /^[-=*#]+$|^total|^subtotal|^product$/i.test(product)) continue;
+
+    const set     = get(r, C_SET).trim();
+    const setNum  = get(r, C_SETNUM).trim();
+    const year    = get(r, C_YEAR).trim();
+    const pid     = get(r, C_PID).trim();
+    const notes   = get(r, C_NOTES).trim();
+
+    const qty     = toNum(get(r, C_QTY))      ?? 0;   // E — quantity
+    const priceUS = toNum(get(r, C_PRICE_US)); // K — per unit live US$
+    const totalUS = toNum(get(r, C_TOTAL_US)); // J — pre-calc total (qty × live price)
+    const boxPx   = toNum(get(r, C_BOX_PX));  // L — live box price
+    const unitAU  = toNum(get(r, C_UNIT_AU));  // F — avg cost AUD
+    const costUS  = unitAU ? +(unitAU * audUsdRate).toFixed(2) : null;
+
+    const profitPU  = (priceUS&&costUS) ? +(priceUS-costUS).toFixed(2) : null;
+    const totProfit = profitPU!=null ? +(profitPU*qty).toFixed(2) : null;
+    const profitPct = (profitPU!=null&&costUS) ? +((profitPU/costUS)*100).toFixed(1) : null;
+
+    const category = detectCat(product, set);
+    const name = set || product; // Set Description is the display name
+
+    items.push({ product, set, setNum, year, pid, notes, qty,
+                 priceUS, totalUS, boxPx, unitAU, costUS,
+                 profitPU, totProfit, profitPct, category, name });
+  }
+
+  allItems = items.filter(i => i.name && (i.totalUS!=null || i.priceUS!=null || i.qty>0));
+
+  if (!allItems.length) {
+    setStatus('No items parsed. Check browser console for details.');
+    return;
+  }
+  finish();
+}
+
+function finish() {
+  updateTotals(); updateCounts(); render();
+  saveSnapshot();
+  document.getElementById('statusBox').style.display='none';
+  document.getElementById('updLbl').textContent='Updated '+new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── SNAPSHOT SYSTEM ──
+// Saves one data point per day (keyed by date string) to localStorage
+// Builds up real historical data over time for the chart
+function saveSnapshot() {
+  try {
+    const today = new Date().toISOString().slice(0,10); // "2026-03-06"
+    const snapshots = getSnapshots();
+
+    const opItems  = allItems.filter(i=>i.category==='onepiece');
+    const pkItems  = allItems.filter(i=>i.category==='pokemon');
+    const otItems  = allItems.filter(i=>i.category==='other');
+    const T = a => a.reduce((s,i)=>s+(i.totalUS||0),0);
+
+    // Only save once per day (don't overwrite with same-day refresh)
+    if (!snapshots[today]) {
+      snapshots[today] = {
+        total: +(T(allItems).toFixed(2)),
+        op:    +(T(opItems).toFixed(2)),
+        pk:    +(T(pkItems).toFixed(2)),
+        ot:    +(T(otItems).toFixed(2)),
+      };
+      // Keep max 104 weeks (2 years) of data
+      const keys = Object.keys(snapshots).sort();
+      if (keys.length > 104) delete snapshots[keys[0]];
+      localStorage.setItem('sealedindex_snapshots', JSON.stringify(snapshots));
+    }
+  } catch(e) { console.log('Snapshot save failed:', e); }
+}
+
+function getSnapshots() {
+  try {
+    return JSON.parse(localStorage.getItem('sealedindex_snapshots') || '{}');
+  } catch(e) { return {}; }
+}
+
+function setStatus(html) {
+  const s=document.getElementById('statusBox');
+  s.innerHTML=html; s.style.display='block';
+}
+
+function updateTotals() {
+  const g = cat => allItems.filter(i=>cat==='all'||i.category===cat);
+  const T  = a => a.reduce((s,i)=>s+(i.totalUS||0),0);
+  // Previous total = sum of (qty × boxPx) — box price represents last month's market value
+  const TP = a => a.reduce((s,i)=>s+((i.qty||0)*(i.boxPx||i.priceUS||0)),0);
+  const Q  = a => a.reduce((s,i)=>s+(i.qty||0),0);
+  const op=g('onepiece'), pk=g('pokemon'), ot=g('other'), all=allItems;
+
+  const setMove = (id, cur, prev) => {
+    const el = document.getElementById(id);
+    if (!prev || prev===0) { el.textContent='— %'; el.className='tc-move flat'; return; }
+    const pct = ((cur-prev)/prev)*100;
+    const cls = pct>0.1?'up':pct<-0.1?'down':'flat';
+    const arrow = pct>0.1?'▲':pct<-0.1?'▼':'—';
+    el.textContent = `${arrow} ${Math.abs(pct).toFixed(1)}% mo`;
+    el.className = `tc-move ${cls}`;
+  };
+
+  const opT=T(op), pkT=T(pk), otT=T(ot), allT=opT+pkT+otT;
+  const opP=TP(op), pkP=TP(pk), otP=TP(ot), allP=opP+pkP+otP;
+
+  document.getElementById('opTotal').textContent  = fmt(opT);
+  document.getElementById('pkTotal').textContent  = fmt(pkT);
+  document.getElementById('otTotal').textContent  = fmt(otT);
+  document.getElementById('allTotal').textContent = fmt(allT);
+  document.getElementById('opQty').textContent    = Q(op)+' boxes';
+  document.getElementById('pkQty').textContent    = Q(pk)+' boxes';
+  document.getElementById('otQty').textContent    = Q(ot)+' boxes';
+  document.getElementById('allQty').textContent   = Q(all)+' boxes';
+
+  setMove('opMove',  opT,  opP);
+  setMove('pkMove',  pkT,  pkP);
+  setMove('otMove',  otT,  otP);
+  setMove('allMove', allT, allP);
+}
+
+function updateCounts() {
+  const c=cat=>allItems.filter(i=>cat==='all'||i.category===cat).length;
+  document.getElementById('cntAll').textContent=c('all');
+  document.getElementById('cntOP').textContent=c('onepiece');
+  document.getElementById('cntPK').textContent=c('pokemon');
+  document.getElementById('cntOT').textContent=c('other');
+}
+
+function setView(v) {
+  currentView=v;
+  document.getElementById('gridBtn').classList.toggle('active',v==='grid');
+  document.getElementById('listBtn').classList.toggle('active',v==='list');
+  render();
+}
+function setTab(tab,btn) {
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // Hide grid/list toggle when on chart tab
+  document.querySelector('.view-tog').style.display = tab==='chart' ? 'none' : 'flex';
+  render();
+}
+function toggleProfit(on) {
+  profitOn=on;
+  document.querySelectorAll('.profit-panel,.li-profit').forEach(el=>el.classList.toggle('show',on));
+  document.querySelectorAll('.card').forEach(el=>el.classList.toggle('profit-open',on));
+}
+
+function render() {
+  const area = document.getElementById('contentArea');
+
+  if (currentTab === 'chart') {
+    renderChart(area);
+    return;
+  }
+
+  const items = currentTab==='all' ? allItems : allItems.filter(i=>i.category===currentTab);
+  if (!items.length) { area.innerHTML='<div class="empty">No items in this category.</div>'; return; }
+
+  if (currentView==='grid') {
+    area.innerHTML=`<div class="grid-view">${items.map(renderCard).join('')}</div>`;
+  } else {
+    area.innerHTML=`<div class="list-view">
+      <div class="list-hdr">
+        <div class="lh"></div>
+        <div class="lh">Set / Product</div>
+        <div class="lh r">Live Price</div>
+        <div class="lh r">Qty</div>
+        <div class="lh r">Total Value</div>
+        <div class="lh r">Change</div>
+        <div class="lh"></div>
+      </div>
+      ${items.map(renderListItem).join('')}
+    </div>`;
+  }
+}
+
+function renderChart(area) {
+  // Build 52 weekly data points going back 12 months
+  // We have: current value (totalUS = col J) and box price (col L = reference/older price)
+  // We'll simulate a plausible weekly curve between boxPrice-era value and today's value
+  // using each item's actual price movement as the basis
+
+  const now = new Date();
+  const labels = [];
+  for (let w = 51; w >= 0; w--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - w * 7);
+    labels.push(d.toLocaleDateString('en-AU', {day:'numeric', month:'short'}));
+  }
+
+  // For each item, interpolate between boxPx*qty (12mo ago) and totalUS (now)
+  // with slight realistic noise to make it look like real market data
+  const opItems  = allItems.filter(i=>i.category==='onepiece');
+  const pkItems  = allItems.filter(i=>i.category==='pokemon');
+  const otItems  = allItems.filter(i=>i.category==='other');
+
+  // Load real snapshots from localStorage
+  const snapshots = getSnapshots();
+  const snapKeys  = Object.keys(snapshots).sort(); // sorted date strings
+
+  let allData, opData, pkData, otData, usingRealData;
+
+  if (snapKeys.length >= 2) {
+    // We have real data — map snapshots onto weekly labels
+    usingRealData = true;
+    const now = new Date();
+
+    allData = labels.map((_, wi) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (51 - wi) * 7);
+      const dateStr = d.toISOString().slice(0,10);
+      // Find closest snapshot on or before this date
+      const closest = snapKeys.filter(k => k <= dateStr).pop();
+      return closest ? snapshots[closest].total : null;
+    });
+    opData = labels.map((_, wi) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (51 - wi) * 7);
+      const dateStr = d.toISOString().slice(0,10);
+      const closest = snapKeys.filter(k => k <= dateStr).pop();
+      return closest ? snapshots[closest].op : null;
+    });
+    pkData = labels.map((_, wi) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (51 - wi) * 7);
+      const dateStr = d.toISOString().slice(0,10);
+      const closest = snapKeys.filter(k => k <= dateStr).pop();
+      return closest ? snapshots[closest].pk : null;
+    });
+    otData = labels.map((_, wi) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (51 - wi) * 7);
+      const dateStr = d.toISOString().slice(0,10);
+      const closest = snapKeys.filter(k => k <= dateStr).pop();
+      return closest ? snapshots[closest].ot : null;
+    });
+  } else {
+    // Not enough data yet — show flat line at current value with a note
+    usingRealData = false;
+    const T = a => a.reduce((s,i)=>s+(i.totalUS||0),0);
+    const curAll = T(allItems), curOp = T(opItems), curPk = T(pkItems), curOt = T(otItems);
+    allData = labels.map(() => curAll);
+    opData  = labels.map(() => curOp);
+    pkData  = labels.map(() => curPk);
+    otData  = labels.map(() => curOt);
+  }
+
+  const curVal  = allData[51];
+  const startVal= allData[0];
+  const change  = curVal - startVal;
+  const changePct = startVal ? ((change/startVal)*100).toFixed(1) : 0;
+  const changeClass = change >= 0 ? 'pos' : 'neg';
+  const changeArrow = change >= 0 ? '▲' : '▼';
+
+  const costTotal = allItems.reduce((s,i)=>s+(i.costUS?i.costUS*i.qty:0),0);
+  const profitTotal = curVal - costTotal;
+  const profitPct = costTotal ? ((profitTotal/costTotal)*100).toFixed(1) : 0;
+  const profitClass = profitTotal >= 0 ? 'pos' : 'neg';
+
+  area.innerHTML = `
+    <div class="chart-area">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Portfolio Performance — 12 Month Overview</div>
+          <div class="chart-meta">Weekly data points · Based on current market prices vs reference box prices</div>
+        </div>
+      </div>
+      <div class="chart-stats">
+        <div class="cs-box">
+          <div class="cs-lbl">Current Value</div>
+          <div class="cs-val">${fmt(curVal)}</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-lbl">Total Cost (USD)</div>
+          <div class="cs-val">${costTotal ? fmt(costTotal) : '—'}</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-lbl">Total Profit</div>
+          <div class="cs-val ${profitClass}">${costTotal ? fmt(profitTotal) : '—'}</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-lbl">Return</div>
+          <div class="cs-val ${profitClass}">${costTotal ? changeArrow+' '+Math.abs(profitPct)+'%' : '—'}</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-lbl">12mo Movement</div>
+          <div class="cs-val ${changeClass}">${changeArrow} ${Math.abs(changePct)}%</div>
+        </div>
+      </div>
+      <canvas id="portfolioChart" height="100"></canvas>
+      <p class="chart-note" id="chartNote"></p>
+    </div>`;
+
+  // Draw chart
+  const ctx = document.getElementById('portfolioChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,400);
+  grad.addColorStop(0,'rgba(74,144,226,0.25)');
+  grad.addColorStop(1,'rgba(74,144,226,0.02)');
+
+  // Set note text
+  const noteEl = document.getElementById('chartNote');
+  if (usingRealData) {
+    noteEl.innerHTML = `✅ Showing <b>${snapKeys.length} real snapshots</b> captured since ${snapKeys[0]}. Data grows automatically each day you open this page.`;
+    noteEl.style.color = '#00a86b';
+  } else {
+    noteEl.innerHTML = `📸 <b>Building your history...</b> Today's snapshot has been saved (${new Date().toISOString().slice(0,10)}). Open this page again tomorrow and next week — real data will start plotting automatically.`;
+    noteEl.style.color = '#888';
+  }
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Total Portfolio (USD)',
+          data: allData,
+          borderColor: '#4a90e2',
+          backgroundColor: grad,
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#4a90e2',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          fill: true,
+          tension: 0.35,
+          spanGaps: true,
+        },
+        {
+          label: 'One Piece',
+          data: opData,
+          borderColor: '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 2.5,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#f59e0b',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1,
+          fill: false,
+          tension: 0.35,
+          borderDash: [4,3],
+        },
+        {
+          label: 'Pokémon',
+          data: pkData,
+          borderColor: '#e0003c',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 2.5,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#e0003c',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1,
+          fill: false,
+          tension: 0.35,
+          borderDash: [4,3],
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { position:'top', labels:{ font:{size:11, family:'Arial'}, boxWidth:12, padding:16 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color:'rgba(0,0,0,0.04)' },
+          ticks: {
+            font:{size:10, family:'Arial'},
+            maxTicksLimit: 12,
+            color:'#aab',
+          }
+        },
+        y: {
+          grid: { color:'rgba(0,0,0,0.04)' },
+          ticks: {
+            font:{size:10, family:'Arial'},
+            color:'#aab',
+            callback: v => '$'+Math.round(v/1000)+'k'
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderCard(item) {
+  const img=tcgImg(item.pid), url=tcgUrl(item.pid);
+  const pc=item.totProfit>0?'pos':item.totProfit<0?'neg':'';
+  const ps=profitOn?' show':'';
+
+  const imgSection = img
+    ? `<a href="${url}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%;position:relative;">
+         <img src="${img}" alt="${item.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;"
+           onerror="this.style.display='none'">
+         <div class="tcg-hover">View on TCGPlayer ↗</div>
+       </a>`
+    : `<div class="card-img-ph">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+         ${item.setNum||item.name.slice(0,12)}
+       </div>`;
+
+  return `<div class="card">
+  <div class="card-img">${imgSection}</div>
+  <div class="card-body">
+    <div class="card-name">${item.name}</div>
+    <div class="card-sub">${[item.setNum, item.year].filter(Boolean).join(' · ')}</div>
+    <div class="card-nums">
+      <span class="cn-price">${fmt(item.priceUS)} ${chgBadge(item)}</span>
+      <span class="cn-qty">QTY ${item.qty}</span>
+      <span class="cn-total">${fmt(item.totalUS)}</span>
+    </div>
+    <div class="profit-panel${ps}">
+      <div class="pp-section">
+        <span class="pp-lbl">Total Cost USD</span>
+        <span class="pp-val">${item.costUS ? fmt(item.costUS * item.qty) : '—'}</span>
+      </div>
+      <div class="pp-divider"></div>
+      <div class="pp-profit-row">
+        <span class="pp-profit-lbl">Profit</span>
+        <span class="pp-profit-val">
+          <span class="pp-profit-amt ${pc}">${item.totProfit != null ? fmt(item.totProfit) : '—'}</span>
+          ${item.profitPct != null ? `<span class="pp-pct ${item.profitPct>=0?'pos-bg':'neg-bg'}">${item.profitPct>=0?'▲':'▼'} ${Math.abs(item.profitPct)}%</span>` : ''}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderListItem(item) {
+  const img=tcgImg(item.pid), url=tcgUrl(item.pid);
+  const pc=item.totProfit>0?'pos':item.totProfit<0?'neg':'';
+  const ps=profitOn?' show':'';
+
+  const imgHtml=img
+    ? `<a href="${url}" target="_blank" rel="noopener"><img src="${img}" alt="${item.name}" loading="lazy" onerror="this.closest('.li-img').innerHTML='<div class=li-img-ph>${item.setNum||'?'}</div>'"></a>`
+    : `<div class="li-img-ph">${item.setNum||'?'}</div>`;
+
+  const linkBtn=url
+    ? `<a href="${url}" target="_blank" class="li-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`
+    : `<div></div>`;
+
+  return `<div class="list-item">
+  <div class="li-row">
+    <div class="li-img">${imgHtml}</div>
+    <div class="li-col"><div class="li-name">${item.name}</div><div class="li-sub">${[item.setNum,item.year].filter(Boolean).join(' · ')||'—'}</div></div>
+    <div class="li-col r"><div class="li-price">${fmt(item.priceUS)}</div></div>
+    <div class="li-col r"><div class="li-qty">QTY ${item.qty}</div></div>
+    <div class="li-col r"><div class="li-total">${fmt(item.totalUS)}</div></div>
+    <div class="li-col r">${chgBadge(item)}</div>
+    <div class="li-col">${linkBtn}</div>
+  </div>
+  <div class="li-profit${ps}">
+    <div class="lp-i"><span class="lp-l">Total Cost USD</span><span class="lp-v">${item.costUS ? fmt(item.costUS * item.qty) : '—'}</span></div>
+    <div class="lp-i"><span class="lp-l">Profit</span><span class="lp-v big ${pc}">${item.totProfit!=null?fmt(item.totProfit):'—'}</span></div>
+    <div class="lp-i"><span class="lp-l">Return</span><span class="lp-v big ${pc}">${item.profitPct!=null?(item.profitPct>=0?'▲':'▼')+' '+Math.abs(item.profitPct)+'%':'—'}</span></div>
+  </div>
+</div>`;
+}
+
+doLoad();
+</script>
+</body>
+</html>
